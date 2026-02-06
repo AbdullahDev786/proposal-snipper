@@ -1,0 +1,5 @@
+platform = supabase
+organization = AbdullahDev786's Org
+Project name = proposal-sniper
+Database password = Abdullah@014296
+Region = Asia Pacific

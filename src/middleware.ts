@@ -98,6 +98,117 @@
 // }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import { createServerClient } from '@supabase/ssr'
+// import { NextResponse, type NextRequest } from 'next/server'
+
+// export async function middleware(request: NextRequest) {
+//   let response = NextResponse.next({
+//     request: { headers: request.headers },
+//   })
+
+//   const path = request.nextUrl.pathname
+
+//   const supabase = createServerClient(
+//     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+//     {
+//       cookies: {
+//         getAll: () => request.cookies.getAll(),
+//         setAll: (cookiesToSet) => {
+//           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+//           response = NextResponse.next({ request })
+//           cookiesToSet.forEach(({ name, value, options }) =>
+//             response.cookies.set(name, value, options)
+//           )
+//         },
+//       },
+//     }
+//   )
+
+//   try {
+//     const { data: { user }, error } = await supabase.auth.getUser()
+
+//     // 1. NETWORK SAFETY: If internet is unstable, do not redirect.
+//     if (error && (error.name === 'AuthRetryableFetchError' || error.status === 0)) {
+//       return response
+//     }
+
+//     // 2. LOGGED OUT LOGIC
+//     if (!user) {
+//       const isProtectedRoute = path.startsWith('/dashboard') || 
+//                                path.startsWith('/pricing') || 
+//                                path.startsWith('/onboarding')
+//       if (isProtectedRoute) {
+//         return NextResponse.redirect(new URL('/login', request.url))
+//       }
+//       return response
+//     }
+
+//     // 3. LOGGED IN LOGIC - AUTH GATE
+//     const isAuthPage = path === '/' || path === '/login' || path === '/signup'
+//     if (user && isAuthPage) {
+//       return NextResponse.redirect(new URL('/dashboard', request.url))
+//     }
+
+//     // 4. ONBOARDING ENFORCEMENT
+//     const hasCompletedOnboarding = user.user_metadata?.onboarding_done
+
+//     if (!hasCompletedOnboarding && !path.startsWith('/onboarding')) {
+//       return NextResponse.redirect(new URL('/onboarding', request.url))
+//     }
+
+//     if (hasCompletedOnboarding && path.startsWith('/onboarding')) {
+//       return NextResponse.redirect(new URL('/dashboard', request.url))
+//     }
+
+//   } catch (err) {
+//     console.error("Proxy error:", err)
+//   }
+
+//   return response
+// }
+
+// export const config = {
+//   matcher: [
+//     /*
+//      * Match all request paths except for the ones starting with:
+//      * - _next/static (static files)
+//      * - _next/image (image optimization files)
+//      * - favicon.ico (favicon file)
+//      * - public files (svg, jpg, etc)
+//      */
+//     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+//   ],
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -116,6 +227,7 @@ export async function middleware(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          // Create a new response to reflect cookie changes
           response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
@@ -125,44 +237,30 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-    // 1. NETWORK SAFETY: If internet is unstable, do not redirect.
-    if (error && (error.name === 'AuthRetryableFetchError' || error.status === 0)) {
-      return response
+  // 1. LOGGED OUT LOGIC
+  if (!user) {
+    const isProtectedRoute = path.startsWith('/dashboard') || 
+                             path.startsWith('/pricing') || 
+                             path.startsWith('/onboarding')
+    if (isProtectedRoute) {
+      return NextResponse.redirect(new URL('/login', request.url))
     }
+    return response
+  }
 
-    // 2. LOGGED OUT LOGIC
-    if (!user) {
-      const isProtectedRoute = path.startsWith('/dashboard') || 
-                               path.startsWith('/pricing') || 
-                               path.startsWith('/onboarding')
-      if (isProtectedRoute) {
-        return NextResponse.redirect(new URL('/login', request.url))
-      }
-      return response
-    }
+  // 2. LOGGED IN LOGIC
+  // If user is logged in and tries to hit login/signup, send to dashboard
+  if (path === '/login' || path === '/signup') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
 
-    // 3. LOGGED IN LOGIC - AUTH GATE
-    const isAuthPage = path === '/' || path === '/login' || path === '/signup'
-    if (user && isAuthPage) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+  // 3. ONBOARDING ENFORCEMENT
+  const hasCompletedOnboarding = user.user_metadata?.onboarding_done
 
-    // 4. ONBOARDING ENFORCEMENT
-    const hasCompletedOnboarding = user.user_metadata?.onboarding_done
-
-    if (!hasCompletedOnboarding && !path.startsWith('/onboarding')) {
-      return NextResponse.redirect(new URL('/onboarding', request.url))
-    }
-
-    if (hasCompletedOnboarding && path.startsWith('/onboarding')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
-  } catch (err) {
-    console.error("Proxy error:", err)
+  if (!hasCompletedOnboarding && !path.startsWith('/onboarding') && path !== '/') {
+    return NextResponse.redirect(new URL('/onboarding', request.url))
   }
 
   return response
@@ -170,13 +268,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (svg, jpg, etc)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

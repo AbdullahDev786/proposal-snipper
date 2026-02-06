@@ -213,57 +213,58 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: { headers: request.headers },
-  })
+  // let response = NextResponse.next({
+  //   request: { headers: request.headers },
+  // })
 
-  const path = request.nextUrl.pathname
+  // const path = request.nextUrl.pathname
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          // Create a new response to reflect cookie changes
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+  // const supabase = createServerClient(
+  //   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  //   {
+  //     cookies: {
+  //       getAll: () => request.cookies.getAll(),
+  //       setAll: (cookiesToSet) => {
+  //         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+  //         // Create a new response to reflect cookie changes
+  //         response = NextResponse.next({ request })
+  //         cookiesToSet.forEach(({ name, value, options }) =>
+  //           response.cookies.set(name, value, options)
+  //         )
+  //       },
+  //     },
+  //   }
+  // )
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  // const { data: { user }, error } = await supabase.auth.getUser()
 
-  // 1. LOGGED OUT LOGIC
-  if (!user) {
-    const isProtectedRoute = path.startsWith('/dashboard') || 
-                             path.startsWith('/pricing') || 
-                             path.startsWith('/onboarding')
-    if (isProtectedRoute) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-    return response
-  }
+  // // 1. LOGGED OUT LOGIC
+  // if (!user) {
+  //   const isProtectedRoute = path.startsWith('/dashboard') || 
+  //                            path.startsWith('/pricing') || 
+  //                            path.startsWith('/onboarding')
+  //   if (isProtectedRoute) {
+  //     return NextResponse.redirect(new URL('/login', request.url))
+  //   }
+  //   return response
+  // }
 
-  // 2. LOGGED IN LOGIC
-  // If user is logged in and tries to hit login/signup, send to dashboard
-  if (path === '/login' || path === '/signup') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  // // 2. LOGGED IN LOGIC
+  // // If user is logged in and tries to hit login/signup, send to dashboard
+  // if (path === '/login' || path === '/signup') {
+  //   return NextResponse.redirect(new URL('/dashboard', request.url))
+  // }
 
-  // 3. ONBOARDING ENFORCEMENT
-  const hasCompletedOnboarding = user.user_metadata?.onboarding_done
+  // // 3. ONBOARDING ENFORCEMENT
+  // const hasCompletedOnboarding = user.user_metadata?.onboarding_done
 
-  if (!hasCompletedOnboarding && !path.startsWith('/onboarding') && path !== '/') {
-    return NextResponse.redirect(new URL('/onboarding', request.url))
-  }
+  // if (!hasCompletedOnboarding && !path.startsWith('/onboarding') && path !== '/') {
+  //   return NextResponse.redirect(new URL('/onboarding', request.url))
+  // }
 
-  return response
+  // return response
+  return NextResponse.next()
 }
 
 export const config = {
